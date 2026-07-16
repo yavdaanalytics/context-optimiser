@@ -1,0 +1,94 @@
+name: release-tag
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          # Trusted publishing requires Node >= 22.14.0 and npm CLI >= 11.5.1.
+          node-version: "22.14.0"
+          registry-url: "https://registry.npmjs.org"
+          cache: "npm"
+
+      - name: Upgrade npm for OIDC trusted publishing
+        run: npm install -g npm@11.5.1
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify tag matches package version
+        run: npm run release:verify-tag -- "${GITHUB_REF_NAME}"
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm test
+
+      - name: Sync plugin manifest versions
+        run: npm run release:sync-plugins
+
+      - name: Verify npm and plugin versions match
+        run: npm run release:verify-versions
+
+      - name: Compute leaf name
+        id: leaf
+        run: echo "leaf=$(node -p "require('./package.json').name.split('/').pop()")" >> "$GITHUB_OUTPUT"
+
+      - name: Package plugin folders
+        run: |
+          mkdir -p dist/plugins
+          zip -r "dist/plugins/claude-${{ steps.leaf.outputs.leaf }}-${GITHUB_REF_NAME}.zip" "plugins/claude-${{ steps.leaf.outputs.leaf }}"
+          zip -r "dist/plugins/cursor-${{ steps.leaf.outputs.leaf }}-${GITHUB_REF_NAME}.zip" "plugins/cursor-${{ steps.leaf.outputs.leaf }}"
+
+      - name: Generate checksums
+        run: |
+          cd dist/plugins
+          sha256sum *.zip > checksums.txt
+
+      # First publish / fallback: NODE_AUTH_TOKEN from NPM_TOKEN.
+      # Once Trusted Publisher is linked for this package, leave NPM_TOKEN unset
+      # and strip the setup-node placeholder so OIDC is used instead.
+      - name: Publish npm package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
+            if [ -n "${NPM_CONFIG_USERCONFIG:-}" ] && [ -f "$NPM_CONFIG_USERCONFIG" ]; then
+              sed -i '/_authToken/d' "$NPM_CONFIG_USERCONFIG"
+            fi
+            npm --version
+            node scripts/publish-npm.mjs --access public --provenance
+          else
+            npm --version
+            node scripts/publish-npm.mjs --access public
+          fi
+
+      - name: Verify package on npm registry
+        run: npm run release:ensure-published -- --wait --timeout-ms 120000
+
+      - name: Create GitHub release with plugin artifacts
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            dist/plugins/*.zip
+            dist/plugins/checksums.txt

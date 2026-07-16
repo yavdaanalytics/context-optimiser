@@ -1,0 +1,6 @@
+**/__pycache__/
+*.tgz
+.agent/
+.git/
+.gitignore
+scratch/

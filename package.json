@@ -1,0 +1,42 @@
+{
+  "name": "@yavdaanalytics/context-optimiser",
+  "version": "0.1.1",
+  "description": "Context window optimizer and session rotator MCP server for agentic workflows.",
+  "license": "MIT",
+  "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "swarm",
+    "mcp_server.py",
+    "context_rotation_config.py",
+    "bin",
+    "SKILL.md",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yavdaanalytics/context-optimiser.git"
+  },
+  "homepage": "https://github.com/yavdaanalytics/context-optimiser",
+  "bugs": {
+    "url": "https://github.com/yavdaanalytics/context-optimiser/issues"
+  },
+  "bin": {
+    "context-optimiser": "bin/index.js",
+    "context-optimiser-setup": "bin/setup.js"
+  },
+  "scripts": {
+    "build": "node -e \"console.log('context-optimiser: no compile step')\"",
+    "test": "node -e \"console.log('context-optimiser: no automated npm tests yet')\"",
+    "release:sync-plugins": "node scripts/sync-plugin-versions.mjs",
+    "release:verify-tag": "node scripts/verify-release-tag.mjs",
+    "release:verify-versions": "node scripts/verify-release-versions.mjs",
+    "release:publish": "node scripts/publish-npm.mjs --access public",
+    "release:ensure-published": "node scripts/ensure-npm-published.mjs"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

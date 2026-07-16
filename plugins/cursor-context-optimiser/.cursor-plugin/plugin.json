@@ -1,0 +1,17 @@
+{
+  "name": "context-optimiser",
+  "description": "Context window optimizer and session rotator MCP server for agentic workflows.",
+  "version": "0.1.1",
+  "author": {
+    "name": "Yavda Analytics"
+  },
+  "keywords": [
+    "context-optimiser",
+    "mcp",
+    "context-window",
+    "compaction",
+    "session-rotation"
+  ],
+  "skills": "skills/",
+  "mcpServers": "mcp.json"
+}
